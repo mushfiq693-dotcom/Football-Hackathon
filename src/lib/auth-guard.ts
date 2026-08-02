@@ -23,7 +23,7 @@ export function requireAuth(
 ) {
   return async (request: NextRequest, { params }: { params?: Promise<Record<string, string>> }) => {
     try {
-      const supabase = await createClient();
+      const supabase = await createClient(request);
       const {
         data: { user },
         error: authError,
@@ -31,7 +31,7 @@ export function requireAuth(
 
       if (authError || !user) {
         return NextResponse.json(
-          { error: 'Unauthorized: Valid JWT session required' },
+          { error: `Unauthorized: Valid JWT session required (${authError?.message})` },
           { status: 401 }
         );
       }
@@ -45,7 +45,7 @@ export function requireAuth(
 
       if (profileError || !profile) {
         return NextResponse.json(
-          { error: 'Forbidden: Profile not found' },
+          { error: `Forbidden: Profile not found (${profileError?.message})` },
           { status: 403 }
         );
       }

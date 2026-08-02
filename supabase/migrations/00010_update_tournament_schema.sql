@@ -22,9 +22,25 @@ UPDATE tournaments SET status_new = 'Completed' WHERE status = 'completed';
 UPDATE tournaments SET status_new = 'Cancelled' WHERE status = 'archived';
 
 -- 4. Drop old column and rename new one
+-- First, drop dependent policy
+DROP POLICY IF EXISTS "Super admins can delete draft tournaments" ON tournaments;
+
 ALTER TABLE tournaments DROP COLUMN status;
 ALTER TABLE tournaments RENAME COLUMN status_new TO status;
 ALTER TABLE tournaments ALTER COLUMN status SET NOT NULL;
+
+-- Re-create the policy
+CREATE POLICY "Super admins can delete draft tournaments"
+  ON tournaments FOR DELETE
+  TO authenticated
+  USING (
+    status::text = 'Draft'
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'super_admin'
+    )
+  );
 
 -- 5. Drop old enum type
 DROP TYPE tournament_status;

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { loginSchema } from '@/lib/validators/auth';
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: authData.user.id,
@@ -55,6 +56,20 @@ export async function POST(request: NextRequest) {
       },
       profile,
     });
+
+    // Propagate cookies set by the Supabase client to the NextResponse
+    const cookieStore = await cookies();
+    cookieStore.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, {
+        ...cookie,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+    });
+    
+    return response;
   } catch (error) {
     console.error('Login API error:', error);
     return NextResponse.json(

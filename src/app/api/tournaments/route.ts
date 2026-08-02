@@ -8,7 +8,7 @@ import { slugify } from '@/lib/utils';
  * GET /api/tournaments
  * List all tournaments. Accessible by all authenticated users.
  */
-export const GET = requireAuth(async () => {
+export const GET = requireAuth(async (request, { user }) => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -18,7 +18,7 @@ export const GET = requireAuth(async () => {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json({ tournaments: data || [] });
   } catch (error) {
     console.error('[TOURNAMENTS_GET]', error);
     return NextResponse.json(

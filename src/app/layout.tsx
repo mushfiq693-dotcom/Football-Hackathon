@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { GlobalPhaseProvider } from "@/providers/global-phase-provider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,7 +29,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} dark`} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider defaultTheme="dark">
-          <AuthProvider>{children}</AuthProvider>
+          <GlobalPhaseProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </GlobalPhaseProvider>
         </ThemeProvider>
       </body>
     </html>
