@@ -73,6 +73,14 @@ export const PATCH = requireAuth(async (request, { params, user }) => {
       );
     }
 
+    // Restrict sensitive field updates to admins
+    if ((validatedData.owner_id || validatedData.budget_remaining !== undefined) && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden: Only admins can update owner or budget' },
+        { status: 403 }
+      );
+    }
+
     // 2. Perform update
     const { data, error } = await supabase
       .from('teams')
