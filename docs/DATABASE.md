@@ -12,7 +12,7 @@ Extends the internal `auth.users` table.
 
 ### 2. `tournaments`
 The top-level container for all events.
-- **Fields**: `name`, `slug`, `budget_per_team`, `max_players_per_team`, `status`.
+- **Fields**: `name`, `slug`, `description`, `season`, `venue`, `registration_start`, `registration_end`, `auction_date`, `max_teams`, `budget_per_team`, `minimum_bid`, `bid_increment`, `status`.
 
 ### 3. `teams`
 Competing entities within a tournament.
@@ -47,3 +47,4 @@ Records every bid placed.
 - `user_role`: `super_admin`, `admin`, `auctioneer`, `team_owner`, `captain`, `viewer`.
 - `auction_status`: `draft`, `live`, `paused`, `completed`.
 - `player_category`: `goalkeeper`, `defender`, `midfielder`, `striker`.
+- `tournament_status`: `Draft`, `Registration Open`, `Registration Closed`, `Auction Scheduled`, `Auction Live`, `Completed`, `Cancelled`.
