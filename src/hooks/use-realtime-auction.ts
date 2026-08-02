@@ -1,88 +1,50 @@
-'use client';
-
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuctionStore } from '@/stores/auction-store';
-import type { Bid } from '@/types/auction';
+import { useAuth } from '@/hooks/use-auth';
 
-export function useRealtimeAuction(auctionId: string | null) {
-  const {
-    setAuctionStatus,
-    setCurrentPlayer,
-    addBid,
-    setTimer,
-    setOnlineUsers,
-  } = useAuctionStore();
+export function useAuctionRealtime(auctionId: string) {
+  const { profile } = useAuth();
+  const store = useAuctionStore();
 
   useEffect(() => {
-    if (!auctionId) return;
+    if (!auctionId || !profile) return;
 
     const supabase = createClient();
+    const channel = supabase.channel(`auction:${auctionId}`);
 
-    const channel = supabase
-      .channel(`auction:${auctionId}`)
-      // Listen for new bids
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'bids',
-          filter: `auction_id=eq.${auctionId}`,
-        },
-        (payload) => {
-          addBid(payload.new as Bid);
-        }
-      )
-      // Listen for auction status changes
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'auctions',
-          filter: `id=eq.${auctionId}`,
-        },
-        (payload) => {
-          const updated = payload.new as Record<string, unknown>;
-          if (updated.status) {
-            setAuctionStatus(
-              updated.status as ReturnType<typeof useAuctionStore.getState>['auctionStatus']
-            );
-          }
-          if (updated.current_player_id === null) {
-            setCurrentPlayer(null);
-          }
-        }
-      )
-      // Timer ticks from auctioneer
-      .on('broadcast', { event: 'timer_tick' }, ({ payload }) => {
-        setTimer(payload.seconds as number);
+    // Subscribe to presence
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const presenceState = channel.presenceState();
+        const users = Object.values(presenceState).flat() as any[];
+        store.setOnlineUsers(users);
       })
-      // Presence tracking
+      .on('broadcast', { event: 'auction_update' }, ({ payload }) => {
+        if (payload.currentPlayer) store.setCurrentPlayer(payload.currentPlayer);
+        if (payload.status) store.setAuctionStatus(payload.status);
+        if (payload.timer !== undefined) store.setTimer(payload.timer);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'auctions', 
+        filter: `id=eq.${auctionId}` 
+      }, (payload) => {
+        // Handle DB changes if needed
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          const presenceState = channel.presenceState();
-          const users = (Object.values(presenceState).flat() as unknown) as Array<{
-            user_id: string;
-            role: string;
-          }>;
-          setOnlineUsers(users);
+          await channel.track({
+            user_id: profile.id,
+            role: profile.role,
+            online_at: new Date().toISOString(),
+          });
         }
       });
-
-    // Listen for presence sync
-    channel.on('presence', { event: 'sync' }, () => {
-      const presenceState = channel.presenceState();
-      const users = (Object.values(presenceState).flat() as unknown) as Array<{
-        user_id: string;
-        role: string;
-      }>;
-      setOnlineUsers(users);
-    });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [auctionId, setAuctionStatus, setCurrentPlayer, addBid, setTimer, setOnlineUsers]);
+  }, [auctionId, profile]);
 }

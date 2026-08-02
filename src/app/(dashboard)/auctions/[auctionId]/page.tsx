@@ -1,4 +1,6 @@
-export default async function AuctionDetailPage({
+import { AuctionDashboard } from '@/components/auctions/auction-dashboard';
+
+export default async function AuctionPage({
   params,
 }: {
   params: Promise<{ auctionId: string }>;
@@ -7,11 +9,8 @@ export default async function AuctionDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Auction Lobby</h1>
-        <p className="text-muted-foreground">Auction ID: {auctionId}</p>
-      </div>
-      {/* Auction lobby content will go here */}
+      <h1 className="text-3xl font-bold">Auction Room</h1>
+      <AuctionDashboard auctionId={auctionId} />
     </div>
   );
 }
